@@ -1,3 +1,8 @@
+# 🤖 Guardian X1 – Autonomous Patrolling & Security Robot
+
+## 📌 Overview
+Guardian X1 is a multi-functional autonomous security robot designed for home and industrial surveillance. It integrates multiple sensors for hazard detection, supports both manual and automatic control, and provides real-time video streaming using ESP32-CAM.
+
 ---
 
 ## ✨ Features
@@ -28,7 +33,6 @@
 | Battery (7.4V) | 1 |
 
 ---
-
 
 ---
 
@@ -79,7 +83,7 @@
 ---
 
 ## 📸 Demo
-![image 1](https://github.com/user-attachments/assets/79ec97ee-21d8-4481-999c-24a81df908e5)
+![image 1](https://github.com/user-attachments/assets/27794d70-d680-4e62-bc0d-f141dfe80614)
 
 ## 🎥 Demo Video
 Watch the working demo of Guardian X1 here:
@@ -101,7 +105,7 @@ This project is open-source and available under the MIT License.
 ---
 
 ## 👤 Author
-**Eshwar Prasad Y**
+**Eshwar prasad Y**
 
 ---
 

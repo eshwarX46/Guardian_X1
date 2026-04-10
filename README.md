@@ -28,15 +28,7 @@
 | Battery (7.4V) | 1 |
 
 ---
-## 📂 Project Structure
 
-Guardian_X1/
-│
-├── code/
-│ └── Guardian_X1_Main.ino
-├── images/
-├── diagrams/
-└── docs/
 
 ---
 

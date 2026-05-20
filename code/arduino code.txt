@@ -1,0 +1,147 @@
+/*
+* LINE FOLLOWER ROBOT - 100% WORKING
+* Sensors: 1 = BLACK, 0 = WHITE
+* Motors: All forward confirmed working
+* ADDED: LED blinking + Buzzer beeping
+*/
+// ============ PIN DEFINITIONS ============
+// IR Sensors
+#define LEFT_SENSOR 2
+#define RIGHT_SENSOR 3
+// Motor Driver L298N
+#define ENA 5
+#define IN1 6
+#define IN2 7
+#define IN3 4
+#define IN4 8
+#define ENB 9
+// LEDs and Buzzer
+#define LED_RED 12
+#define LED_GREEN 13
+#define BUZZER 11
+// ============ SPEED SETTINGS ============
+#define SPEED 90
+// ============ SETUP ============
+void setup() {
+// Sensor pins
+pinMode(LEFT_SENSOR, INPUT);
+pinMode(RIGHT_SENSOR, INPUT);
+// Motor pins
+pinMode(ENA, OUTPUT);
+pinMode(ENB, OUTPUT);
+pinMode(IN1, OUTPUT);
+pinMode(IN2, OUTPUT);
+pinMode(IN3, OUTPUT);
+pinMode(IN4, OUTPUT);
+// LED pins
+pinMode(LED_RED, OUTPUT);
+pinMode(LED_GREEN, OUTPUT);
+// Buzzer pin
+pinMode(BUZZER, OUTPUT);
+// Stop motors
+stop();
+// Startup blink and beep
+digitalWrite(LED_RED, HIGH);
+digitalWrite(LED_GREEN, HIGH);
+tone(BUZZER, 1000, 200);
+delay(300);
+digitalWrite(LED_RED, LOW);
+digitalWrite(LED_GREEN, LOW);
+delay(200);
+digitalWrite(LED_RED, HIGH);
+digitalWrite(LED_GREEN, HIGH);
+tone(BUZZER, 1200, 200);
+delay(300);
+digitalWrite(LED_RED, LOW);
+digitalWrite(LED_GREEN, LOW);
+// Wait 2 seconds to place robot on track
+delay(2000);
+}
+// ============ MAIN LOOP ============
+void loop() {
+// Read sensors
+int left = digitalRead(LEFT_SENSOR);
+int right = digitalRead(RIGHT_SENSOR);
+// Both sensors on BLACK line -> GO FORWARD
+if (left == 1 && right == 1) {
+forward();
+// Green LED ON, Red OFF (Going straight)
+digitalWrite(LED_GREEN, HIGH);
+digitalWrite(LED_RED, LOW);
+noTone(BUZZER); // No sound when going straight
+}
+// Left on BLACK, Right on WHITE -> TURN LEFT
+else if (left == 1 && right == 0) {
+turnLeft();
+// Red LED blinking fast (Turning left)
+digitalWrite(LED_RED, HIGH);
+digitalWrite(LED_GREEN, LOW);
+tone(BUZZER, 800, 50); // Short beep when turning
+}
+// Right on BLACK, Left on WHITE -> TURN RIGHT
+else if (left == 0 && right == 1) {
+turnRight();
+// Red LED blinking fast (Turning right)
+digitalWrite(LED_RED, HIGH);
+digitalWrite(LED_GREEN, LOW);
+tone(BUZZER, 1000, 50); // Short beep when turning
+}
+// Both sensors on WHITE -> LINE LOST -> STOP
+else {
+stop();
+// Both LEDs blinking (Line lost)
+static unsigned long lastBlink = 0;
+static bool blinkState = false;
+if (millis() - lastBlink > 300) {
+blinkState = !blinkState;
+digitalWrite(LED_RED, blinkState);
+digitalWrite(LED_GREEN, blinkState);
+lastBlink = millis();
+}
+// Beep when line lost
+static unsigned long lastBeep = 0;
+if (millis() - lastBeep > 500) {
+tone(BUZZER, 600, 100);
+lastBeep = millis();
+}
+}
+}
+// ============ MOTOR FUNCTIONS ============
+void forward() {
+// Left motors FORWARD
+digitalWrite(IN1, HIGH);
+digitalWrite(IN2, LOW);
+analogWrite(ENA, SPEED);
+// Right motors FORWARD
+digitalWrite(IN3, HIGH);
+digitalWrite(IN4, LOW);
+analogWrite(ENB, SPEED);
+}
+void turnLeft() {
+// Left motors STOP
+digitalWrite(IN1, LOW);
+digitalWrite(IN2, LOW);
+analogWrite(ENA, 0);
+// Right motors FORWARD
+digitalWrite(IN3, HIGH);
+digitalWrite(IN4, LOW);
+analogWrite(ENB, SPEED);
+}
+void turnRight() {
+// Left motors FORWARD
+digitalWrite(IN1, HIGH);
+digitalWrite(IN2, LOW);
+analogWrite(ENA, SPEED);
+// Right motors STOP
+digitalWrite(IN3, LOW);
+digitalWrite(IN4, LOW);
+analogWrite(ENB, 0);
+}
+void stop() {
+digitalWrite(IN1, LOW);
+digitalWrite(IN2, LOW);
+digitalWrite(IN3, LOW);
+digitalWrite(IN4, LOW);
+analogWrite(ENA, 0);
+analogWrite(ENB, 0);
+}

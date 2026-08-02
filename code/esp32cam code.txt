@@ -1,95 +1,231 @@
-#include "esp_camera.h"
-#include <WiFi.h>
-//
-// WARNING!!! PSRAM IC required for UXGA resolution and high JPEG quality
-// Ensure ESP32 Wrover Module or other board with PSRAM is selected
-// Partial images will be transmitted if image exceeds buffer size
-//
-// Select camera model
-//#define CAMERA_MODEL_WROVER_KIT // Has PSRAM
-//#define CAMERA_MODEL_ESP_EYE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_PSRAM // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_V2_PSRAM // M5Camera version B Has PSRAM
-//#define CAMERA_MODEL_M5STACK_WIDE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_ESP32CAM // No PSRAM
-#define CAMERA_MODEL_AI_THINKER // Has PSRAM
-//#define CAMERA_MODEL_TTGO_T_JOURNAL // No PSRAM
-#include "camera_pins.h"
-const char* ssid = "*********";
-const char* password = "*********";
+/**
+ * @file ESP32_CAM_Server.ino
+ * @brief ESP32-CAM Web Server with Camera Streaming
+ * 
+ * This code implements a complete web server for the ESP32-CAM module,
+ * allowing live video streaming and camera configuration through a web browser.
+ * 
+ * ## Features
+ * - Live JPEG streaming via web interface
+ * - Supports multiple camera models (AI-Thinker, M5Stack, ESP-EYE, etc.)
+ * - Automatic PSRAM detection for higher resolution
+ * - WiFi AP + Station mode
+ * - Configurable camera parameters (resolution, quality, flip, mirror)
+ * 
+ * ## Supported Camera Models
+ * - AI-Thinker ESP32-CAM (default)
+ * - ESP-EYE
+ * - M5Stack series
+ * - TTGO T-Journal
+ * - Wrover Kit
+ * 
+ * ## Hardware Requirements
+ * - ESP32 board with camera interface
+ * - PSRAM recommended for higher resolutions (UXGA)
+ * - USB-to-UART programmer for flashing
+ * 
+ * @author ESP32-CAM Community
+ */
+
+// ============================================
+//                          LIBRARY INCLUDES
+// ============================================
+
+#include "esp_camera.h"  /**< ESP32 Camera driver library */
+#include <WiFi.h>        /**< WiFi connectivity library */
+
+// ============================================
+//                          CAMERA MODEL SELECTION
+// ============================================
+
+/**
+ * @brief Select your camera model by uncommenting ONE definition
+ * 
+ * IMPORTANT: PSRAM is required for UXGA resolution and high JPEG quality.
+ * Ensure ESP32 Wrover Module or other board with PSRAM is selected in Arduino IDE.
+ * Partial images may be transmitted if image exceeds buffer size.
+ */
+
+//#define CAMERA_MODEL_WROVER_KIT      /**< Has PSRAM */
+//#define CAMERA_MODEL_ESP_EYE         /**< Has PSRAM */
+//#define CAMERA_MODEL_M5STACK_PSRAM   /**< Has PSRAM */
+//#define CAMERA_MODEL_M5STACK_V2_PSRAM /**< M5Camera version B Has PSRAM */
+//#define CAMERA_MODEL_M5STACK_WIDE    /**< Has PSRAM */
+//#define CAMERA_MODEL_M5STACK_ESP32CAM /**< No PSRAM */
+#define CAMERA_MODEL_AI_THINKER       /**< Has PSRAM - DEFAULT */
+//#define CAMERA_MODEL_TTGO_T_JOURNAL  /**< No PSRAM */
+
+// ============================================
+//                          PIN CONFIGURATION
+// ============================================
+
+#include "camera_pins.h"  /**< Board-specific pin definitions */
+
+// ============================================
+//                          WIFI CREDENTIALS
+// ============================================
+
+/**
+ * @brief WiFi network credentials
+ * Replace the asterisks with your actual SSID and password
+ */
+const char* ssid = "*********";      /**< WiFi network name */
+const char* password = "*********";  /**< WiFi network password */
+
+// ============================================
+//                          FUNCTION DECLARATIONS
+// ============================================
+
+/**
+ * @brief Start the camera web server
+ * This function is defined in the camera server library
+ */
 void startCameraServer();
+
+// ============================================
+//                          SETUP
+// ============================================
+
+/**
+ * @brief Arduino setup function - Initializes camera and web server
+ * 
+ * This function:
+ * 1. Initializes serial communication
+ * 2. Configures camera parameters based on board
+ * 3. Detects PSRAM and adjusts settings accordingly
+ * 4. Initializes the camera module
+ * 5. Applies sensor-specific corrections
+ * 6. Connects to WiFi
+ * 7. Starts the web server
+ */
 void setup() {
-Serial.begin(115200);
-Serial.setDebugOutput(true);
-Serial.println();
-camera_config_t config;
-config.ledc_channel = LEDC_CHANNEL_0;
-config.ledc_timer = LEDC_TIMER_0;
-config.pin_d0 = Y2_GPIO_NUM;
-config.pin_d1 = Y3_GPIO_NUM;
-config.pin_d2 = Y4_GPIO_NUM;
-config.pin_d3 = Y5_GPIO_NUM;
-config.pin_d4 = Y6_GPIO_NUM;
-config.pin_d5 = Y7_GPIO_NUM;
-config.pin_d6 = Y8_GPIO_NUM;
-config.pin_d7 = Y9_GPIO_NUM;
-config.pin_xclk = XCLK_GPIO_NUM;
-config.pin_pclk = PCLK_GPIO_NUM;
-config.pin_vsync = VSYNC_GPIO_NUM;
-config.pin_href = HREF_GPIO_NUM;
-config.pin_sscb_sda = SIOD_GPIO_NUM;
-config.pin_sscb_scl = SIOC_GPIO_NUM;
-config.pin_pwdn = PWDN_GPIO_NUM;
-config.pin_reset = RESET_GPIO_NUM;
-config.xclk_freq_hz = 20000000;
-config.pixel_format = PIXFORMAT_JPEG;
-// if PSRAM IC present, init with UXGA resolution and higher JPEG quality
-// for larger pre-allocated frame buffer.
-if(psramFound()){
-config.frame_size = FRAMESIZE_UXGA;
-config.jpeg_quality = 10;
-config.fb_count = 2;
-} else {
-config.frame_size = FRAMESIZE_SVGA;
-config.jpeg_quality = 12;
-config.fb_count = 1;
+  // Initialize serial communication for debugging
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+  Serial.println();
+
+  /**
+   * @brief Camera configuration structure
+   * All parameters must be set before camera initialization
+   */
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;      /**< LEDC channel for XCLK */
+  config.ledc_timer = LEDC_TIMER_0;          /**< LEDC timer for XCLK */
+  
+  // GPIO pin assignments
+  config.pin_d0 = Y2_GPIO_NUM;               /**< Data pin D0 */
+  config.pin_d1 = Y3_GPIO_NUM;               /**< Data pin D1 */
+  config.pin_d2 = Y4_GPIO_NUM;               /**< Data pin D2 */
+  config.pin_d3 = Y5_GPIO_NUM;               /**< Data pin D3 */
+  config.pin_d4 = Y6_GPIO_NUM;               /**< Data pin D4 */
+  config.pin_d5 = Y7_GPIO_NUM;               /**< Data pin D5 */
+  config.pin_d6 = Y8_GPIO_NUM;               /**< Data pin D6 */
+  config.pin_d7 = Y9_GPIO_NUM;               /**< Data pin D7 */
+  config.pin_xclk = XCLK_GPIO_NUM;           /**< XCLK clock pin */
+  config.pin_pclk = PCLK_GPIO_NUM;           /**< PCLK clock pin */
+  config.pin_vsync = VSYNC_GPIO_NUM;         /**< VSYNC sync pin */
+  config.pin_href = HREF_GPIO_NUM;           /**< HREF reference pin */
+  config.pin_sscb_sda = SIOD_GPIO_NUM;       /**< I2C SDA pin */
+  config.pin_sscb_scl = SIOC_GPIO_NUM;       /**< I2C SCL pin */
+  config.pin_pwdn = PWDN_GPIO_NUM;           /**< Power down pin */
+  config.pin_reset = RESET_GPIO_NUM;         /**< Reset pin */
+  
+  config.xclk_freq_hz = 20000000;            /**< XCLK frequency 20MHz */
+  config.pixel_format = PIXFORMAT_JPEG;      /**< Output format JPEG */
+
+  /**
+   * @brief PSRAM detection and configuration
+   * If PSRAM is available, use higher resolution and quality
+   */
+  if(psramFound()) {
+    config.frame_size = FRAMESIZE_UXGA;      /**< UXGA (1600x1200) with PSRAM */
+    config.jpeg_quality = 10;                /**< Higher quality (lower number = better) */
+    config.fb_count = 2;                     /**< Double frame buffer for smoother streaming */
+  } else {
+    config.frame_size = FRAMESIZE_SVGA;      /**< SVGA (800x600) without PSRAM */
+    config.jpeg_quality = 12;                /**< Standard quality */
+    config.fb_count = 1;                     /**< Single frame buffer */
+  }
+
+  // Special configuration for ESP-EYE board
+  #if defined(CAMERA_MODEL_ESP_EYE)
+    pinMode(13, INPUT_PULLUP);               /**< Button pin 13 with pull-up */
+    pinMode(14, INPUT_PULLUP);               /**< Button pin 14 with pull-up */
+  #endif
+
+  /**
+   * @brief Initialize the camera
+   * Check for initialization errors and handle them
+   */
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    Serial.printf("Camera init failed with error 0x%x", err);
+    return;
+  }
+
+  /**
+   * @brief Get sensor reference for configuration
+   * Apply sensor-specific corrections
+   */
+  sensor_t * s = esp_camera_sensor_get();
+
+  // OV3660 sensor (Wrover Kit) corrections
+  if (s->id.PID == OV3660_PID) {
+    s->set_vflip(s, 1);        /**< Flip vertically */
+    s->set_brightness(s, 1);   /**< Increase brightness slightly */
+    s->set_saturation(s, -2);  /**< Decrease saturation for natural colors */
+  }
+
+  // Reduce frame size for higher initial frame rate
+  s->set_framesize(s, FRAMESIZE_QVGA);  /**< Start at QVGA (320x240) */
+
+  // M5Stack board corrections
+  #if defined(CAMERA_MODEL_M5STACK_WIDE) || defined(CAMERA_MODEL_M5STACK_ESP32CAM)
+    s->set_vflip(s, 1);        /**< Flip vertically for M5Stack */
+    s->set_hmirror(s, 1);      /**< Mirror horizontally for M5Stack */
+  #endif
+
+  /**
+   * @brief Connect to WiFi network
+   * Display progress with dots while connecting
+   */
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+
+  /**
+   * @brief Start the camera web server
+   * The server will handle HTTP requests and streaming
+   */
+  startCameraServer();
+
+  // Display connection information
+  Serial.print("Camera Ready! Use 'http://");
+  Serial.print(WiFi.localIP());
+  Serial.println("' to connect");
 }
-#if defined(CAMERA_MODEL_ESP_EYE)
-pinMode(13, INPUT_PULLUP);
-pinMode(14, INPUT_PULLUP);
-#endif
-// camera init
-esp_err_t err = esp_camera_init(&config);
-if (err != ESP_OK) {
-Serial.printf("Camera init failed with error 0x%x", err);
-return;
-}
-sensor_t * s = esp_camera_sensor_get();
-// initial sensors are flipped vertically and colors are a bit saturated
-if (s->id.PID == OV3660_PID) {
-s->set_vflip(s, 1); // flip it back
-s->set_brightness(s, 1); // up the brightness just a bit
-s->set_saturation(s, -2); // lower the saturation
-}
-// drop down frame size for higher initial frame rate
-s->set_framesize(s, FRAMESIZE_QVGA);
-#if defined(CAMERA_MODEL_M5STACK_WIDE) || defined(CAMERA_MODEL_M5STACK_ESP32CAM)
-s->set_vflip(s, 1);
-s->set_hmirror(s, 1);
-#endif
-WiFi.begin(ssid, password);
-while (WiFi.status() != WL_CONNECTED) {
-delay(500);
-Serial.print(".");
-}
-Serial.println("");
-Serial.println("WiFi connected");
-startCameraServer();
-Serial.print("Camera Ready! Use 'http://");
-Serial.print(WiFi.localIP());
-Serial.println("' to connect");
-}
+
+// ============================================
+//                          MAIN LOOP
+// ============================================
+
+/**
+ * @brief Main program loop
+ * Runs continuously after setup - currently idle with 10-second delay
+ * 
+ * @note This loop is intentionally empty as the web server handles
+ *       all functionality asynchronously. The delay prevents CPU hogging.
+ */
 void loop() {
-// put your main code here, to run repeatedly:
-delay(10000);
+  // Delay to prevent watchdog timer issues
+  // The web server runs in the background
+  delay(10000);  /**< 10 second delay to yield CPU time */
 }
+
+// ============================================
+//                          END OF CODE
+// ============================================

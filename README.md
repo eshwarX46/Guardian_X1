@@ -109,6 +109,11 @@ This project is open-source and available under the MIT License.
 
 ---
 
+## 📧 CONTACT:
+** Email: eshwargowda313@gmail.com**
+ **LinkedIn: linkedin.com/in/eshwar-prasad-y-a3043b370** 
+ 
+---
 ## 🙏 Acknowledgments
 - Arduino Community  
 - ESP32 Community  
